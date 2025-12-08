@@ -1,0 +1,290 @@
+@page "/appointments/book"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize]
+
+@using System
+@using System.Collections.Generic
+@using System.ComponentModel.DataAnnotations
+@using System.Linq
+@using System.Security.Claims
+@using spa_web_app.Models
+@using spa_web_app.Services
+
+@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager
+@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject Microsoft.AspNetCore.Identity.UserManager<Microsoft.AspNetCore.Identity.IdentityUser> UserManager
+@inject IAppointmentService AppointmentService
+
+<PageTitle>Book Appointment</PageTitle>
+
+<h3>Book Appointment</h3>
+
+@if (_isLoading)
+{
+    <p>Loading...</p>
+}
+else if (!_isAuthenticated)
+{
+    <p>You must be logged in to book an appointment.</p>
+}
+else
+{
+    <EditForm Model="_input"
+              OnValidSubmit="HandleValidSubmit"
+              FormName="BookAppointmentForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="mb-3">
+            <label class="form-label">Service</label>
+            <InputSelect class="form-control" @bind-Value="_input.ServiceName">
+                @foreach (var option in _serviceOptions)
+                {
+                    <option value="@option.Name">@option.Name</option>
+                }
+            </InputSelect>
+        </div>
+
+        <div class="mb-3">
+            <label class="form-label">Start time</label>
+            <input type="datetime-local"
+                   class="form-control"
+                   @bind="_input.StartTimeLocal" />
+        </div>
+
+        <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+            @(_isSubmitting ? "Booking..." : "Book Appointment")
+        </button>
+
+        @if (!string.IsNullOrEmpty(_statusMessage))
+        {
+            <p class="mt-2">@_statusMessage</p>
+        }
+    </EditForm>
+
+    <hr />
+
+    <h4>Upcoming Appointments</h4>
+
+    @if (_upcomingAppointments == null)
+    {
+        <p>Loading appointments...</p>
+    }
+    else if (_upcomingAppointments.Count == 0)
+    {
+        <p>No upcoming appointments.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Service</th>
+                    <th>Start</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+            @foreach (var a in _upcomingAppointments)
+            {
+                <tr>
+                    <td>@a.ServiceName</td>
+                    <td>@a.StartTime.ToLocalTime()</td>
+                    <td>@a.Status</td>
+                    <td>
+                        @if (!string.Equals(a.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                        {
+                            <button class="btn btn-sm btn-outline-danger"
+                                    @onclick="() => CancelAppointment(a.Id)"
+                                    disabled="_isSubmitting">
+                                Cancel
+                            </button>
+                        }
+                    </td>
+                </tr>
+            }
+            </tbody>
+        </table>
+    }
+}
+
+@code
+{
+    private bool _isLoading = true;
+    private bool _isAuthenticated;
+    private bool _isSubmitting;
+    private string? _currentUserId;
+    private string? _statusMessage;
+
+    private readonly List<ServiceOption> _serviceOptions = new()
+    {
+        new ServiceOption("Swedish Massage (60 min)", TimeSpan.FromMinutes(60)),
+        new ServiceOption("Deep Tissue Massage (90 min)", TimeSpan.FromMinutes(90)),
+        new ServiceOption("Facial (45 min)", TimeSpan.FromMinutes(45)),
+        new ServiceOption("Body Scrub (60 min)", TimeSpan.FromMinutes(60)),
+    };
+
+    private readonly Dictionary<string, TimeSpan> _serviceDurations;
+    private readonly Dictionary<string, decimal> _servicePrices = new()
+    {
+        { "Swedish Massage (60 min)", 80m },
+        { "Deep Tissue Massage (90 min)", 120m },
+        { "Facial (45 min)", 70m },
+        { "Body Scrub (60 min)", 90m },
+    };
+
+    public BookAppointment()
+    {
+        _serviceDurations = _serviceOptions.ToDictionary(s => s.Name, s => s.DefaultDuration);
+    }
+
+    private AppointmentInputModel _input = new AppointmentInputModel();
+    private List<Appointment>? _upcomingAppointments;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        _isAuthenticated = user.Identity != null && user.Identity.IsAuthenticated;
+
+        if (_isAuthenticated)
+        {
+            var identityUser = await UserManager.GetUserAsync(user);
+            _currentUserId = identityUser?.Id;
+
+            await LoadUpcomingAppointments(user);
+        }
+
+        _isLoading = false;
+    }
+
+    private async Task LoadUpcomingAppointments(ClaimsPrincipal user)
+    {
+        var list = await AppointmentService.GetUpcomingAppointmentsForUserAsync(user);
+        _upcomingAppointments = list.ToList();
+    }
+
+    private async Task HandleValidSubmit()
+    {
+        if (!_isAuthenticated || string.IsNullOrEmpty(_currentUserId))
+        {
+            _statusMessage = "You must be logged in to book an appointment.";
+            return;
+        }
+
+        if (_input.StartTimeLocal == null)
+        {
+            _statusMessage = "Start time is required.";
+            return;
+        }
+
+        _isSubmitting = true;
+        _statusMessage = null;
+
+        try
+        {
+            var startUtc = DateTime.SpecifyKind(_input.StartTimeLocal.Value, DateTimeKind.Local)
+                .ToUniversalTime();
+
+            if (!_serviceDurations.TryGetValue(_input.ServiceName, out var duration))
+            {
+                duration = TimeSpan.FromMinutes(60);
+            }
+
+            var endUtc = startUtc.Add(duration);
+            if (!_servicePrices.TryGetValue(_input.ServiceName, out var price))
+            {
+                price = 0m;
+            }
+
+            await AppointmentService.CreateAppointmentAsync(
+                _currentUserId!,
+                _input.ServiceName,
+                startUtc,
+                endUtc,
+                price);
+
+            _statusMessage = "Appointment booked successfully.";
+
+            _input = new AppointmentInputModel
+            {
+                ServiceName = "Swedish Massage (60 min)",
+                StartTimeLocal = DateTime.Now.AddDays(1).Date.AddHours(9)
+            };
+
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            await LoadUpcomingAppointments(authState.User);
+        }
+        catch
+        {
+            _statusMessage = "An error occurred while booking the appointment.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    private async Task CancelAppointment(int appointmentId)
+    {
+        if (!_isAuthenticated)
+        {
+            _statusMessage = "You must be logged in to cancel an appointment.";
+            return;
+        }
+
+        _isSubmitting = true;
+        _statusMessage = null;
+
+        try
+        {
+            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            var success = await AppointmentService.CancelAppointmentAsync(appointmentId, user);
+
+            if (!success)
+            {
+                _statusMessage = "You are not allowed to cancel this appointment or it no longer exists.";
+            }
+            else
+            {
+                _statusMessage = "Appointment cancelled.";
+                await LoadUpcomingAppointments(user);
+            }
+        }
+        catch
+        {
+            _statusMessage = "An error occurred while cancelling the appointment.";
+        }
+        finally
+        {
+            _isSubmitting = false;
+        }
+    }
+
+    public class AppointmentInputModel
+    {
+        [Required]
+        [StringLength(100)]
+        public string ServiceName { get; set; } = "Swedish Massage (60 min)";
+
+        [Required]
+        [Display(Name = "Start time")]
+        public DateTime? StartTimeLocal { get; set; } = DateTime.Now.AddDays(1).Date.AddHours(9);
+    }
+
+    private sealed class ServiceOption
+    {
+        public ServiceOption(string name, TimeSpan defaultDuration)
+        {
+            Name = name;
+            DefaultDuration = defaultDuration;
+        }
+
+        public string Name { get; }
+        public TimeSpan DefaultDuration { get; }
+    }
+}
+
