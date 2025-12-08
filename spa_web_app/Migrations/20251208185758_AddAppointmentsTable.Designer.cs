@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using spa_web_app.Data;
 
@@ -11,9 +12,11 @@ using spa_web_app.Data;
 namespace spa_web_app.Migrations
 {
     [DbContext(typeof(spa_web_appContext))]
-    partial class spa_web_appContextModelSnapshot : ModelSnapshot
+    [Migration("20251208185758_AddAppointmentsTable")]
+    partial class AddAppointmentsTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

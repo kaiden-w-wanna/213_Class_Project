@@ -24,6 +24,11 @@
                     </NavLink>
                 </div>
                 <div class="nav-item px-3">
+                    <NavLink class="nav-link" href="/appointments/book" Match="NavLinkMatch.All">
+                        <span class="bi bi-calendar-check-nav-menu" aria-hidden="true"></span> Book Appointment
+                    </NavLink>
+                </div>
+                <div class="nav-item px-3">
                     <form action="Account/Logout" method="post">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />

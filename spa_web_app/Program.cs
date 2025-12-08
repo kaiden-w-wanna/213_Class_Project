@@ -2,8 +2,9 @@ using spa_web_app.Components;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using spa_web_app.Components.Account;
 using spa_web_app.Data;
+using spa_web_app.Components.Account;
+using spa_web_app.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("spa_web_appContextConnection")
@@ -29,6 +30,7 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+builder.Services.AddScoped<IAppointmentService, AppointmentService>();
 
 //builder.Services.AddAuthentication(options =>
 //{
