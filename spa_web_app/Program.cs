@@ -6,57 +6,71 @@ using spa_web_app.Components.Account;
 using spa_web_app.Data;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("spa_web_appContextConnection") ?? throw new InvalidOperationException("Connection string 'spa_web_appContextConnection' not found.");;
+var connectionString = builder.Configuration.GetConnectionString("spa_web_appContextConnection")
+    ?? throw new InvalidOperationException("Connection string 'spa_web_appContextConnection' not found.");
 
-builder.Services.AddDbContext<spa_web_appContext>(options => options.UseSqlServer(connectionString));
+// Add DbContext
+builder.Services.AddDbContext<spa_web_appContext>(options =>
+    options.UseSqlServer(connectionString));
 
-// Add services to the container.
+// Add Identity with roles
+builder.Services.AddIdentity<IdentityUser, IdentityRole>(options =>
+{
+    options.SignIn.RequireConfirmedAccount = true;
+})
+.AddEntityFrameworkStores<spa_web_appContext>()
+.AddDefaultTokenProviders();
+
+// Add Blazor services
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
 builder.Services.AddCascadingAuthenticationState();
-
 builder.Services.AddScoped<IdentityUserAccessor>();
-
 builder.Services.AddScoped<IdentityRedirectManager>();
-
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-builder.Services.AddAuthentication(options =>
-    {
-        options.DefaultScheme = IdentityConstants.ApplicationScheme;
-        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-    })
-    .AddIdentityCookies();
+//builder.Services.AddAuthentication(options =>
+//{
+//    options.DefaultScheme = IdentityConstants.ApplicationScheme;
+//}).AddIdentityCookies();
 
-builder.Services.AddIdentityCore<IdentityUser>(options => options.SignIn.RequireConfirmedAccount = true)
-    .AddEntityFrameworkStores<spa_web_appContext>()
-    .AddSignInManager()
-    .AddDefaultTokenProviders();
+//builder.Services.AddAuthorization();
+
 
 builder.Services.AddSingleton<IEmailSender<IdentityUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Ensure roles exist
+using (var scope = app.Services.CreateScope())
+{
+    var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    string[] roles = { "Customer", "Employee" };
+
+    foreach (var role in roles)
+    {
+        if (!await roleManager.RoleExistsAsync(role))
+        {
+            await roleManager.CreateAsync(new IdentityRole(role));
+        }
+    }
+}
+
+// Configure the HTTP request pipeline
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // The default HSTS value is 30 days. You may want to change this for production scenarios, see https://aka.ms/aspnetcore-hsts.
     app.UseHsts();
-    //hi
 }
 
 app.UseHttpsRedirection();
-
-
 app.UseAntiforgery();
 
 app.MapStaticAssets();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 
-app.MapAdditionalIdentityEndpoints();;
+app.MapAdditionalIdentityEndpoints();
 
 app.Run();
-//Test Commit

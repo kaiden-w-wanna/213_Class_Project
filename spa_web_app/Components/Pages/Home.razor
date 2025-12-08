@@ -1,7 +1,43 @@
 ﻿@page "/"
 
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@inject UserManager<IdentityUser> UserManager
+@inject AuthenticationStateProvider AuthStateProvider
+
 <PageTitle>Home</PageTitle>
 
-<h1>Hello, world!</h1>
+<h1>Welcome to Standard Spa!</h1>
 
-Welcome to your new app.
+<p>
+    Enjoy our spa services and manage your appointments online.<br />
+    Already have an account? <a href="/Account/Login">Log in here</a>.<br />
+    New here? <a href="/Account/Register">Register as a customer</a> or
+    <a href="/Account/EmployeeRegister">register as an employee</a>.
+</p>
+
+<p>@Message</p>
+
+@code {
+    private string Message = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user.Identity != null && user.Identity.IsAuthenticated)
+        {
+            var identityUser = await UserManager.GetUserAsync(user);
+            if (identityUser != null)
+            {
+                var roles = await UserManager.GetRolesAsync(identityUser);
+                Message = $"Logged in as {identityUser.UserName}. Roles: {string.Join(", ", roles)}";
+            }
+        }
+        else
+        {
+            Message = "Not logged in.";
+        }
+    }
+}
