@@ -1,4 +1,4 @@
-using _213_spa_web_app.Components;
+using spa_web_app.Components;
 
 var builder = WebApplication.CreateBuilder(args);
 

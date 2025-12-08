@@ -1,9 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.14.36518.9 d17.14
+VisualStudioVersion = 17.14.36518.9
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "213_spa_web_app", "213_spa_web_app\213_spa_web_app.csproj", "{5A4F16B7-4E0C-4A2F-BB67-B089EA516275}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "spa_web_app", "spa_web_app\spa_web_app.csproj", "{5A4F16B7-4E0C-4A2F-BB67-B089EA516275}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
