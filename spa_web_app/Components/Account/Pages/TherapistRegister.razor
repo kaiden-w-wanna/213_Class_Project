@@ -1,0 +1,131 @@
+﻿@page "/Account/RegisterTherapist"
+
+@using System.ComponentModel.DataAnnotations
+@using Microsoft.AspNetCore.Identity
+@using spa_web_app.Components.Account
+
+@inject UserManager<IdentityUser> UserManager
+@inject IUserStore<IdentityUser> UserStore
+@inject SignInManager<IdentityUser> SignInManager
+@inject RoleManager<IdentityRole> RoleManager
+@inject NavigationManager Navigation
+@inject IdentityRedirectManager RedirectManager
+
+<PageTitle>Register Therapist</PageTitle>
+
+<h1>Register as Therapist</h1>
+
+<div class="row">
+    <div class="col-md-4">
+
+        @if (!string.IsNullOrEmpty(ErrorMessage))
+        {
+            <div class="alert alert-danger">@ErrorMessage</div>
+        }
+
+        <EditForm Model="Input" method="post" OnValidSubmit="Register" FormName="register-therapist">
+            <DataAnnotationsValidator />
+            <ValidationSummary class="text-danger" />
+
+            <div class="form-floating mb-3">
+                <InputText class="form-control" @bind-Value="Input.Email" />
+                <label>Email</label>
+                <ValidationMessage For="() => Input.Email" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText type="password" class="form-control" @bind-Value="Input.Password" />
+                <label>Password</label>
+                <ValidationMessage For="() => Input.Password" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText type="password" class="form-control" @bind-Value="Input.ConfirmPassword" />
+                <label>Confirm Password</label>
+                <ValidationMessage For="() => Input.ConfirmPassword" />
+            </div>
+
+            <div class="form-floating mb-3">
+                <InputText class="form-control" @bind-Value="Input.SecurityCode" />
+                <label>Security Code</label>
+                <ValidationMessage For="() => Input.SecurityCode" />
+            </div>
+
+            <button type="submit" class="w-100 btn btn-primary btn-lg">
+                Create Therapist Account
+            </button>
+        </EditForm>
+
+        <p class="mt-3">
+            <a href="/Account/EmployeeRegister">← Back to employee registration</a>
+        </p>
+
+    </div>
+</div>
+
+@code {
+    private IEnumerable<IdentityError>? identityErrors;
+    private string? ErrorMessage => identityErrors == null
+        ? null
+        : string.Join(", ", identityErrors.Select(e => e.Description));
+
+    [SupplyParameterFromForm]
+    private InputModel Input { get; set; } = new();
+
+    private async Task Register()
+    {
+        const string SecretCode = "SuperSpa67";
+
+        if (Input.SecurityCode != SecretCode)
+        {
+            identityErrors = new[]
+            {
+                new IdentityError { Description = "Invalid security code." }
+            };
+            return;
+        }
+
+        var user = Activator.CreateInstance<IdentityUser>()!;
+
+        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
+        await ((IUserEmailStore<IdentityUser>)UserStore)
+            .SetEmailAsync(user, Input.Email, CancellationToken.None);
+
+        user.EmailConfirmed = true;
+
+        var result = await UserManager.CreateAsync(user, Input.Password);
+
+        if (!result.Succeeded)
+        {
+            identityErrors = result.Errors;
+            return;
+        }
+
+        // Ensure Therapist role exists
+        if (!await RoleManager.RoleExistsAsync("Therapist"))
+        {
+            await RoleManager.CreateAsync(new IdentityRole("Therapist"));
+        }
+
+        // Assign Therapist role
+        await UserManager.AddToRoleAsync(user, "Therapist");
+
+        await SignInManager.SignInAsync(user, isPersistent: false);
+        RedirectManager.RedirectTo("/");
+    }
+
+    private sealed class InputModel
+    {
+        [Required, EmailAddress]
+        public string Email { get; set; } = "";
+
+        [Required, MinLength(6)]
+        public string Password { get; set; } = "";
+
+        [Compare(nameof(Password), ErrorMessage = "Passwords do not match.")]
+        public string ConfirmPassword { get; set; } = "";
+
+        [Required]
+        public string SecurityCode { get; set; } = "";
+    }
+}

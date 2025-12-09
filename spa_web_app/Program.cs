@@ -6,7 +6,9 @@ using spa_web_app.Components.Account;
 using spa_web_app.Data;
 
 var builder = WebApplication.CreateBuilder(args);
-var connectionString = builder.Configuration.GetConnectionString("spa_web_appContextConnection")
+
+var connectionString =
+    builder.Configuration.GetConnectionString("spa_web_appContextConnection")
     ?? throw new InvalidOperationException("Connection string 'spa_web_appContextConnection' not found.");
 
 // Add DbContext
@@ -30,14 +32,7 @@ builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
-//builder.Services.AddAuthentication(options =>
-//{
-//    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-//}).AddIdentityCookies();
-
-//builder.Services.AddAuthorization();
-
-
+// Required by Identity UI
 builder.Services.AddSingleton<IEmailSender<IdentityUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
@@ -46,7 +41,8 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    string[] roles = { "Customer", "Employee" };
+
+    string[] roles = { "Customer", "Therapist", "Receptionist", "Manager", "Admin" };
 
     foreach (var role in roles)
     {
@@ -65,9 +61,14 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+
+//  Correct middleware order
+app.UseAuthentication();
+app.UseAuthorization();
 app.UseAntiforgery();
 
 app.MapStaticAssets();
+
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
 

@@ -1,144 +1,42 @@
 ﻿@page "/Account/EmployeeRegister"
 
-@using System.ComponentModel.DataAnnotations
-@using System.Text
-@using System.Text.Encodings.Web
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.WebUtilities
-@using spa_web_app.Data
+<PageTitle>Employee Registration</PageTitle>
 
-@inject UserManager<IdentityUser> UserManager
-@inject IUserStore<IdentityUser> UserStore
-@inject SignInManager<IdentityUser> SignInManager
-@inject IEmailSender<IdentityUser> EmailSender
-@inject ILogger<EmployeeRegister> Logger
-@inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
-@inject RoleManager<IdentityRole> RoleManager
+<div class="container d-flex justify-content-center align-items-center min-vh-100">
+    <div class="col-md-6 col-lg-5">
+        <div class="card shadow-lg border-0 p-4 rounded-4">
 
-<PageTitle>Employee Register</PageTitle>
-
-<h1>Register as an Employee</h1>
-
-<div class="row">
-    <div class="col-md-4">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="employee-register">
-            <DataAnnotationsValidator />
-            <h2>Create a new employee account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+            <div class="text-center mb-4">
+                <h1 class="fw-bold">Employee Registration</h1>
+                <p class="text-muted">Select your employee role</p>
             </div>
 
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
+            <div class="d-grid gap-3">
+                <a class="btn btn-outline-primary btn-lg rounded-pill" href="/Account/RegisterTherapist">
+                    💆 Register as Therapist
+                </a>
+
+                <a class="btn btn-outline-primary btn-lg rounded-pill" href="/Account/RegisterReceptionist">
+                    📞 Register as Receptionist
+                </a>
+
+                <a class="btn btn-outline-primary btn-lg rounded-pill" href="/Account/RegisterManager">
+                    🧑‍💼 Register as Manager
+                </a>
+
+                <a class="btn btn-outline-danger btn-lg rounded-pill" href="/Account/RegisterAdmin">
+                    🛡️ Register as Admin
+                </a>
             </div>
 
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="confirm-password">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
+            <div class="text-center mt-4">
+                <small class="text-muted">Not an employee?</small><br />
+                <a href="/Account/Register" class="text-decoration-none fw-semibold">
+                    Register as a customer
+                </a>
             </div>
 
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-        <p>
-            Are you a customer?
-            <a href="/Account/Register">Register here</a>
-        </p>
+        </div>
     </div>
 </div>
-
-@code {
-    private IEnumerable<IdentityError>? identityErrors;
-
-    [SupplyParameterFromForm]
-    private InputModel Input { get; set; } = new();
-
-    [SupplyParameterFromQuery]
-    private string? ReturnUrl { get; set; }
-
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(e => e.Description))}";
-
-    public async Task RegisterUser(EditContext editContext)
-    {
-        var user = CreateUser();
-
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-        var result = await UserManager.CreateAsync(user, Input.Password);
-
-        if (!result.Succeeded)
-        {
-            identityErrors = result.Errors;
-            return;
-        }
-
-        // ===== AUTO-CONFIRM EMAIL =====
-        user.EmailConfirmed = true;
-        await UserManager.UpdateAsync(user);
-        // ================================
-
-        // ===== ASSIGN EMPLOYEE ROLE =====
-        if (!await RoleManager.RoleExistsAsync("Employee"))
-        {
-            await RoleManager.CreateAsync(new IdentityRole("Employee"));
-        }
-        await UserManager.AddToRoleAsync(user, "Employee");
-        // ================================
-
-        Logger.LogInformation("Employee created a new account with password.");
-
-        await SignInManager.SignInAsync(user, isPersistent: false);
-        RedirectManager.RedirectTo(ReturnUrl);
-    }
-
-    private IdentityUser CreateUser()
-    {
-        try
-        {
-            return Activator.CreateInstance<IdentityUser>();
-        }
-        catch
-        {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(IdentityUser)}'. Ensure it has a parameterless constructor.");
-        }
-    }
-
-    private IUserEmailStore<IdentityUser> GetEmailStore()
-    {
-        if (!UserManager.SupportsUserEmail)
-        {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
-        }
-        return (IUserEmailStore<IdentityUser>)UserStore;
-    }
-
-    private sealed class InputModel
-    {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
-        public string Email { get; set; } = "";
-
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
-        [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = "";
-
-        [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = "";
-    }
-}
 
