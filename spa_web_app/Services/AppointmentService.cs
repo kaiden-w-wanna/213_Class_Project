@@ -26,11 +26,23 @@ namespace spa_web_app.Services
             string serviceName,
             DateTime startTime,
             DateTime? endTime,
-            decimal? price)
+            decimal? price,
+            string? therapistId)
         {
+            // (Optional) Validate therapist is actually in the Therapist role
+            if (!string.IsNullOrWhiteSpace(therapistId))
+            {
+                var therapist = await _userManager.FindByIdAsync(therapistId);
+                if (therapist == null || !await _userManager.IsInRoleAsync(therapist, "Therapist"))
+                {
+                    throw new InvalidOperationException("Selected user is not a valid therapist.");
+                }
+            }
+
             var appointment = new Appointment
             {
                 CustomerId = customerId,
+                TherapistId = therapistId,
                 ServiceName = serviceName,
                 StartTime = startTime,
                 EndTime = endTime,
@@ -49,22 +61,29 @@ namespace spa_web_app.Services
         {
             var identityUser = await _userManager.GetUserAsync(user);
             if (identityUser == null)
-            {
                 return Array.Empty<Appointment>();
-            }
 
             var roles = await _userManager.GetRolesAsync(identityUser);
-            bool isEmployee = roles.Contains("Employee");
+            bool isStaff = roles.Any(r =>
+                r == "Therapist" ||
+                r == "Receptionist" ||
+                r == "Manager" ||
+                r == "Admin");
 
             IQueryable<Appointment> query = _dbContext.Appointments
                 .Include(a => a.Customer)
-                .Include(a => a.Employee)
+                .Include(a => a.Therapist)
                 .OrderBy(a => a.StartTime);
 
-            if (!isEmployee)
+            if (!isStaff)
             {
-                // Customer: only their own appointments
+                // Customer: only see their own
                 query = query.Where(a => a.CustomerId == identityUser.Id);
+            }
+            else if (roles.Contains("Therapist"))
+            {
+                // Therapist: only see their own appointments
+                query = query.Where(a => a.TherapistId == identityUser.Id);
             }
 
             return await query.ToListAsync();
@@ -76,23 +95,30 @@ namespace spa_web_app.Services
         {
             var identityUser = await _userManager.GetUserAsync(user);
             if (identityUser == null)
-            {
                 return Array.Empty<Appointment>();
-            }
 
             var roles = await _userManager.GetRolesAsync(identityUser);
-            bool isEmployee = roles.Contains("Employee");
+            bool isStaff = roles.Any(r =>
+                r == "Therapist" ||
+                r == "Receptionist" ||
+                r == "Manager" ||
+                r == "Admin");
+
             var start = fromUtc ?? DateTime.UtcNow;
 
             IQueryable<Appointment> query = _dbContext.Appointments
                 .Include(a => a.Customer)
-                .Include(a => a.Employee)
+                .Include(a => a.Therapist)
                 .Where(a => a.StartTime >= start)
                 .OrderBy(a => a.StartTime);
 
-            if (!isEmployee)
+            if (!isStaff)
             {
                 query = query.Where(a => a.CustomerId == identityUser.Id);
+            }
+            else if (roles.Contains("Therapist"))
+            {
+                query = query.Where(a => a.TherapistId == identityUser.Id);
             }
 
             return await query.ToListAsync();
@@ -102,34 +128,53 @@ namespace spa_web_app.Services
         {
             var identityUser = await _userManager.GetUserAsync(user);
             if (identityUser == null)
-            {
                 return false;
-            }
 
             var roles = await _userManager.GetRolesAsync(identityUser);
-            bool isEmployee = roles.Contains("Employee");
+            bool isStaff = roles.Any(r =>
+                r == "Therapist" ||
+                r == "Receptionist" ||
+                r == "Manager" ||
+                r == "Admin");
 
-            var appointment = await _dbContext.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
+            var appointment = await _dbContext.Appointments
+                .FirstOrDefaultAsync(a => a.Id == appointmentId);
+
             if (appointment == null)
-            {
                 return false;
-            }
 
-            if (!isEmployee && appointment.CustomerId != identityUser.Id)
+            if (!isStaff && appointment.CustomerId != identityUser.Id)
             {
-                // Customer trying to cancel someone else’s appointment
+                // Customer trying to cancel someone else's
                 return false;
             }
 
             if (appointment.Status == "Cancelled")
-            {
-                return true; // already cancelled, treat as success
-            }
+                return true;
 
             appointment.Status = "Cancelled";
             await _dbContext.SaveChangesAsync();
             return true;
         }
+
+        public async Task<IReadOnlyList<IdentityUser>> GetAvailableTherapistsAsync(
+            DateTime startTime,
+            DateTime endTime)
+        {
+            var busyTherapistIds = await _dbContext.Appointments
+                .Where(a =>
+                    a.TherapistId != null &&
+                    a.StartTime < endTime &&
+                    (a.EndTime ?? a.StartTime.AddHours(1)) > startTime &&
+                    a.Status != "Cancelled")
+                .Select(a => a.TherapistId!)
+                .ToListAsync();
+
+            var therapists = await _userManager.GetUsersInRoleAsync("Therapist");
+
+            return therapists
+                .Where(t => !busyTherapistIds.Contains(t.Id))
+                .ToList();
+        }
     }
 }
-
