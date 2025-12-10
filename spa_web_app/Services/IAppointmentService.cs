@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Identity;
 using spa_web_app.Models;
 
 namespace spa_web_app.Services
@@ -13,18 +14,16 @@ namespace spa_web_app.Services
             string serviceName,
             DateTime startTime,
             DateTime? endTime,
-            decimal? price);
+            decimal? price,
+            string? therapistId);
 
         /// <summary>
         /// Returns all appointments the given user is allowed to see.
         /// - Customer: only their own appointments.
-        /// - Employee: all appointments.
+        /// - Therapist/Receptionist/Manager/Admin: all appointments.
         /// </summary>
         Task<IReadOnlyList<Appointment>> GetAppointmentsForUserAsync(ClaimsPrincipal user);
 
-        /// <summary>
-        /// Same as GetAppointmentsForUserAsync, but only those on/after fromUtc (default = now).
-        /// </summary>
         Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsForUserAsync(
             ClaimsPrincipal user,
             DateTime? fromUtc = null);
@@ -32,10 +31,15 @@ namespace spa_web_app.Services
         /// <summary>
         /// Cancels an appointment if the user is allowed.
         /// - Customer: may only cancel their own.
-        /// - Employee: may cancel any.
-        /// Returns true if something was changed.
+        /// - Therapist/Receptionist/Manager/Admin: may cancel any.
         /// </summary>
         Task<bool> CancelAppointmentAsync(int appointmentId, ClaimsPrincipal user);
+
+        /// <summary>
+        /// Returns therapists available in the given time window.
+        /// </summary>
+        Task<IReadOnlyList<IdentityUser>> GetAvailableTherapistsAsync(
+            DateTime startTime,
+            DateTime endTime);
     }
 }
-

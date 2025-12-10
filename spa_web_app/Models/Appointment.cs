@@ -13,8 +13,9 @@ namespace spa_web_app.Models
         public string CustomerId { get; set; } = default!;
         public IdentityUser Customer { get; set; } = default!;
 
-        public string? EmployeeId { get; set; }
-        public IdentityUser? Employee { get; set; }
+        // ?? CHANGED: Employee -> Therapist
+        public string? TherapistId { get; set; }
+        public IdentityUser? Therapist { get; set; }
 
         [Required]
         [StringLength(100)]
@@ -38,4 +39,3 @@ namespace spa_web_app.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
-
