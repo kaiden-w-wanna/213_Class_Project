@@ -13,8 +13,10 @@ namespace spa_web_app.Models
         public string CustomerId { get; set; } = default!;
         public IdentityUser Customer { get; set; } = default!;
 
-        // ?? CHANGED: Employee -> Therapist
-        public string? TherapistId { get; set; }
+        [Required(ErrorMessage = "Therapist field is required.")]
+        public string TherapistId { get; set; } = string.Empty;
+
+
         public IdentityUser? Therapist { get; set; }
 
         [Required]
