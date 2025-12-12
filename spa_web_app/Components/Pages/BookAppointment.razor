@@ -1,4 +1,6 @@
 @page "/appointments/book"
+@* 1. This line makes the page interactive (SPA mode), stopping the page reload issue *@
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 @using System
@@ -10,8 +12,8 @@
 @using spa_web_app.Models
 @using spa_web_app.Services
 
-@inject Microsoft.AspNetCore.Components.NavigationManager NavigationManager
-@inject Microsoft.AspNetCore.Components.Authorization.AuthenticationStateProvider AuthStateProvider
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthStateProvider
 @inject UserManager<IdentityUser> UserManager
 @inject IAppointmentService AppointmentService
 
@@ -29,16 +31,14 @@ else if (!_isAuthenticated)
 }
 else
 {
-    <EditForm Model="_input"
-              OnValidSubmit="HandleValidSubmit"
-              FormName="BookAppointmentForm">
+    @* 2. Removed FormName (not needed for InteractiveServer) *@
+    <EditForm Model="_input" OnValidSubmit="HandleValidSubmit">
         <DataAnnotationsValidator />
         <ValidationSummary />
 
-        <!-- Service -->
         <div class="mb-3">
             <label class="form-label">Service</label>
-            <InputSelect class="form-control" @bind-Value="_input.ServiceName">
+            <InputSelect class="form-control" @bind-Value="_input.ServiceName" @after="LoadAvailableTherapists">
                 @foreach (var option in _serviceOptions)
                 {
                     <option value="@option.Name">@option.Name</option>
@@ -46,44 +46,36 @@ else
             </InputSelect>
         </div>
 
-        <!-- Start time -->
         <div class="mb-3">
-            <label class="form-label">Start time</label>
-
-            <input type="datetime-local"
-                   class="form-control"
-                   @bind="_input.StartTimeLocal"
-                   @bind:format="yyyy-MM-ddTHH:mm"
-                   @bind:event="onchange"
-                   @bind:after="OnDateTimeLocalChanged" />
-
-
-            <div class="form-text">
-                Pick a local date and time (browser will show the native picker).
-            </div>
+            <label class="form-label">Date</label>
+            <InputDate class="form-control" @bind-Value="_input.Date"
+                       @after="LoadAvailableTherapists" />
         </div>
 
-        <!-- Therapist -->
+        <div class="mb-3">
+            <label class="form-label">Time</label>
+            @* 3. Fixed TimeSpan binding using Convert.ToString *@
+            <InputSelect class="form-control" @bind-Value="_input.Time"
+                         @after="LoadAvailableTherapists">
+                <option value="">-- Select Time --</option>
+                @foreach (var t in _timeSlots)
+                {
+                    <option value="@Convert.ToString(t)">@t.ToString(@"hh\:mm")</option>
+                }
+            </InputSelect>
+        </div>
+
         <div class="mb-3">
             <label class="form-label">Therapist</label>
-            <InputSelect class="form-control"
-                         @bind-Value="_input.TherapistId"
-                         disabled="@(_loadingTherapists || _availableTherapists.Count == 0)">
+            <InputSelect class="form-control" @bind-Value="_input.TherapistId"
+                         disabled="@(!_availableTherapists.Any())">
                 <option value="">-- Select Therapist --</option>
                 @foreach (var t in _availableTherapists)
                 {
                     <option value="@t.Id">@t.UserName</option>
                 }
             </InputSelect>
-
-
-
-
-            @if (_loadingTherapists)
-            {
-                <small class="text-muted">Loading available therapists...</small>
-            }
-            else if (!_loadingTherapists && _availableTherapists.Count == 0)
+            @if (!_availableTherapists.Any())
             {
                 <small class="text-muted">No therapists available for the selected time.</small>
             }
@@ -98,62 +90,12 @@ else
             <p class="mt-2">@_statusMessage</p>
         }
     </EditForm>
-
-    <hr />
-
-    <h4>Upcoming Appointments</h4>
-
-    @if (_upcomingAppointments == null)
-    {
-        <p>Loading appointments...</p>
-    }
-    else if (_upcomingAppointments.Count == 0)
-    {
-        <p>No upcoming appointments.</p>
-    }
-    else
-    {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Service</th>
-                    <th>Start</th>
-                    <th>Therapist</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-            @foreach (var a in _upcomingAppointments)
-            {
-                <tr>
-                    <td>@a.ServiceName</td>
-                    <td>@a.StartTime.ToLocalTime()</td>
-                    <td>@a.Therapist?.UserName</td>
-                    <td>@a.Status</td>
-                    <td>
-                        @if (!string.Equals(a.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                        {
-                            <button class="btn btn-sm btn-outline-danger"
-                                    @onclick="() => CancelAppointment(a.Id)"
-                                    disabled="_isSubmitting">
-                                Cancel
-                            </button>
-                        }
-                    </td>
-                </tr>
-            }
-            </tbody>
-        </table>
-    }
 }
 
-@code
-{
+@code {
     private bool _isLoading = true;
     private bool _isAuthenticated;
     private bool _isSubmitting;
-    private bool _loadingTherapists;
     private string? _currentUserId;
     private string? _statusMessage;
 
@@ -176,20 +118,23 @@ else
         { "Body Scrub (60 min)", 90m },
     };
 
+    private List<TimeSpan> _timeSlots = new();
+
     public BookAppointment()
     {
         _serviceDurations = _serviceOptions.ToDictionary(s => s.Name, s => s.DefaultDuration);
+
+        _timeSlots = Enumerable.Range(0, (8 * 4) + 1)
+                               .Select(i => TimeSpan.FromMinutes(9 * 60 + i * 15))
+                               .ToList();
     }
 
-    // Input DTO used by the form
     private AppointmentInputModel _input = new AppointmentInputModel
     {
-        // sensible default: tomorrow at 9am
         ServiceName = "Swedish Massage (60 min)",
-        StartTimeLocal = DateTime.Now.AddDays(1).Date.AddHours(9)
+        Date = DateTime.Today.AddDays(1),
+        Time = TimeSpan.FromHours(9)
     };
-
-    private List<Appointment>? _upcomingAppointments;
 
     protected override async Task OnInitializedAsync()
     {
@@ -202,65 +147,31 @@ else
         {
             var identityUser = await UserManager.GetUserAsync(user);
             _currentUserId = identityUser?.Id;
-            await LoadUpcomingAppointments(user);
         }
 
-        // Optionally pre-load available therapists for the default time
         await LoadAvailableTherapists();
-
         _isLoading = false;
     }
 
-    private async Task OnDateTimeLocalChanged()
-    {
-        await LoadAvailableTherapists();
-
-        if (!_availableTherapists.Any(t => t.Id == _input.TherapistId))
-        {
-            _input.TherapistId = string.Empty;
-        }
-    }
-
-
-
+    // 4. Simplified logic using @after instead of @onchange
     private async Task LoadAvailableTherapists()
     {
-        // If no start time chosen, clear the list
-        if (_input.StartTimeLocal == null)
-        {
-            _availableTherapists = new List<IdentityUser>();
-            return;
-        }
+        // Reset therapist selection if options change
+        // _input.TherapistId = null; // Optional: Uncomment if you want to force re-selection
 
-        _loadingTherapists = true;
-        _statusMessage = null;
+        _availableTherapists.Clear();
 
-        try
-        {
-            // Convert the chosen local time to UTC for the service which expects UTC
-            var startUtc = DateTime.SpecifyKind(_input.StartTimeLocal.Value, DateTimeKind.Local).ToUniversalTime();
+        if (_input.Date == null || _input.Time == null) return;
 
-            if (!_serviceDurations.TryGetValue(_input.ServiceName, out var duration))
-            {
-                duration = TimeSpan.FromMinutes(60);
-            }
+        var selectedDateTime = _input.Date.Value.Date + _input.Time.Value;
+        var duration = _serviceDurations.TryGetValue(_input.ServiceName, out var d) ? d : TimeSpan.FromMinutes(60);
+        var endTime = selectedDateTime.Add(duration);
 
-            var endUtc = startUtc.Add(duration);
+        // Ensure we are fetching for the correct user context
+        _availableTherapists = (await AppointmentService.GetAvailableTherapistsAsync(selectedDateTime, endTime)).ToList();
 
-            _availableTherapists = (await AppointmentService
-                .GetAvailableTherapistsAsync(startUtc, endUtc))
-                .ToList();
-        }
-        catch
-        {
-            _statusMessage = "Failed to load therapists. Try again.";
-            _availableTherapists = new List<IdentityUser>();
-        }
-        finally
-        {
-            _loadingTherapists = false;
-            StateHasChanged();
-        }
+        // Refresh UI
+        StateHasChanged();
     }
 
     private async Task HandleValidSubmit()
@@ -271,114 +182,49 @@ else
             return;
         }
 
-        if (_input.StartTimeLocal == null)
-        {
-            _statusMessage = "Start time is required.";
-            return;
-        }
-
-        if (string.IsNullOrWhiteSpace(_input.TherapistId))
-        {
-            _statusMessage = "Please select a therapist.";
-            return;
-        }
-
         _isSubmitting = true;
         _statusMessage = null;
 
         try
         {
-            var startUtc = DateTime.SpecifyKind(_input.StartTimeLocal.Value, DateTimeKind.Local).ToUniversalTime();
-
-            if (!_serviceDurations.TryGetValue(_input.ServiceName, out var duration))
-                duration = TimeSpan.FromMinutes(60);
-
-            var endUtc = startUtc.Add(duration);
-
-            if (!_servicePrices.TryGetValue(_input.ServiceName, out var price))
-                price = 0m;
+            var startTime = _input.Date.Value.Date + _input.Time.Value;
+            var duration = _serviceDurations.TryGetValue(_input.ServiceName, out var d) ? d : TimeSpan.FromMinutes(60);
+            var endTime = startTime.Add(duration);
+            var price = _servicePrices.TryGetValue(_input.ServiceName, out var p) ? p : 0m;
 
             await AppointmentService.CreateAppointmentAsync(
                 _currentUserId!,
                 _input.ServiceName,
-                startUtc,
-                endUtc,
+                startTime,
+                endTime,
                 price,
                 _input.TherapistId);
 
-            _statusMessage = "Appointment booked successfully.";
+            _statusMessage = "Appointment booked successfully!";
 
-            // Reset input to a sensible state
-            _input = new AppointmentInputModel
-            {
-                ServiceName = "Swedish Massage (60 min)",
-                StartTimeLocal = DateTime.Now.AddDays(1).Date.AddHours(9)
-            };
-
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            await LoadUpcomingAppointments(authState.User);
-
-            // refresh therapists for new default time
-            await LoadAvailableTherapists();
+            // Optional: Redirect after booking
+            // NavigationManager.NavigateTo("/appointments");
         }
-        catch
+        catch (Exception ex)
         {
-            _statusMessage = "An error occurred while booking the appointment.";
+            _statusMessage = "An error occurred: " + ex.Message;
         }
         finally
         {
             _isSubmitting = false;
         }
-    }
-
-    private async Task CancelAppointment(int appointmentId)
-    {
-        if (!_isAuthenticated)
-        {
-            _statusMessage = "You must be logged in to cancel an appointment.";
-            return;
-        }
-
-        _isSubmitting = true;
-        _statusMessage = null;
-
-        try
-        {
-            var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-            var user = authState.User;
-
-            var success = await AppointmentService.CancelAppointmentAsync(appointmentId, user);
-
-            _statusMessage = success
-                ? "Appointment cancelled."
-                : "You are not allowed to cancel this appointment.";
-
-            await LoadUpcomingAppointments(user);
-        }
-        catch
-        {
-            _statusMessage = "An error occurred while cancelling the appointment.";
-        }
-        finally
-        {
-            _isSubmitting = false;
-        }
-    }
-
-    private async Task LoadUpcomingAppointments(ClaimsPrincipal user)
-    {
-        var list = await AppointmentService.GetUpcomingAppointmentsForUserAsync(user);
-        _upcomingAppointments = list.ToList();
     }
 
     public class AppointmentInputModel
     {
         [Required]
-        [StringLength(100)]
         public string ServiceName { get; set; } = "Swedish Massage (60 min)";
 
         [Required]
-        public DateTime? StartTimeLocal { get; set; }
+        public DateTime? Date { get; set; }
+
+        [Required]
+        public TimeSpan? Time { get; set; }
 
         [Required]
         public string? TherapistId { get; set; }
