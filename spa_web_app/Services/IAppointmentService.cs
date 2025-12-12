@@ -41,5 +41,7 @@ namespace spa_web_app.Services
         Task<IReadOnlyList<IdentityUser>> GetAvailableTherapistsAsync(
             DateTime startTime,
             DateTime endTime);
+
+        Task<IReadOnlyList<Appointment>> GetAllAppointmentsForDateAsync(DateTime date, ClaimsPrincipal user);
     }
 }

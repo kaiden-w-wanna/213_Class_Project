@@ -21,6 +21,9 @@ namespace spa_web_app.Services
             _userManager = userManager;
         }
 
+        // --------------------------
+        // CREATE
+        // --------------------------
         public async Task<Appointment> CreateAppointmentAsync(
             string customerId,
             string serviceName,
@@ -29,7 +32,6 @@ namespace spa_web_app.Services
             decimal? price,
             string? therapistId)
         {
-            // (Optional) Validate therapist is actually in the Therapist role
             if (!string.IsNullOrWhiteSpace(therapistId))
             {
                 var therapist = await _userManager.FindByIdAsync(therapistId);
@@ -57,6 +59,9 @@ namespace spa_web_app.Services
             return appointment;
         }
 
+        // --------------------------
+        // MY APPOINTMENTS
+        // --------------------------
         public async Task<IReadOnlyList<Appointment>> GetAppointmentsForUserAsync(ClaimsPrincipal user)
         {
             var identityUser = await _userManager.GetUserAsync(user);
@@ -64,45 +69,38 @@ namespace spa_web_app.Services
                 return Array.Empty<Appointment>();
 
             var roles = await _userManager.GetRolesAsync(identityUser);
-            bool isStaff = roles.Any(r =>
-                r == "Therapist" ||
-                r == "Receptionist" ||
-                r == "Manager" ||
-                r == "Admin");
+            bool isTherapist = roles.Contains("Therapist");
 
             IQueryable<Appointment> query = _dbContext.Appointments
                 .Include(a => a.Customer)
                 .Include(a => a.Therapist)
                 .OrderBy(a => a.StartTime);
 
-            if (!isStaff)
+            // Therapists see appointments assigned TO THEM
+            if (isTherapist)
             {
-                // Customer: only see their own
-                query = query.Where(a => a.CustomerId == identityUser.Id);
-            }
-            else if (roles.Contains("Therapist"))
-            {
-                // Therapist: only see their own appointments
                 query = query.Where(a => a.TherapistId == identityUser.Id);
+            }
+            else
+            {
+                // Everyone else (customer, receptionist, manager, admin)
+                query = query.Where(a => a.CustomerId == identityUser.Id);
             }
 
             return await query.ToListAsync();
         }
 
-        public async Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsForUserAsync(
-            ClaimsPrincipal user,
-            DateTime? fromUtc = null)
+        // --------------------------
+        // MY UPCOMING APPOINTMENTS
+        // --------------------------
+        public async Task<IReadOnlyList<Appointment>> GetUpcomingAppointmentsForUserAsync(ClaimsPrincipal user, DateTime? fromUtc = null)
         {
             var identityUser = await _userManager.GetUserAsync(user);
             if (identityUser == null)
                 return Array.Empty<Appointment>();
 
             var roles = await _userManager.GetRolesAsync(identityUser);
-            bool isStaff = roles.Any(r =>
-                r == "Therapist" ||
-                r == "Receptionist" ||
-                r == "Manager" ||
-                r == "Admin");
+            bool isTherapist = roles.Contains("Therapist");
 
             var start = fromUtc ?? DateTime.UtcNow;
 
@@ -112,18 +110,47 @@ namespace spa_web_app.Services
                 .Where(a => a.StartTime >= start)
                 .OrderBy(a => a.StartTime);
 
-            if (!isStaff)
-            {
-                query = query.Where(a => a.CustomerId == identityUser.Id);
-            }
-            else if (roles.Contains("Therapist"))
+            if (isTherapist)
             {
                 query = query.Where(a => a.TherapistId == identityUser.Id);
+            }
+            else
+            {
+                query = query.Where(a => a.CustomerId == identityUser.Id);
             }
 
             return await query.ToListAsync();
         }
 
+        // --------------------------
+        // ALL APPOINTMENTS (STAFF ONLY)
+        // --------------------------
+        public async Task<IReadOnlyList<Appointment>> GetAllAppointmentsForDateAsync(DateTime date, ClaimsPrincipal user)
+        {
+            var identityUser = await _userManager.GetUserAsync(user);
+            if (identityUser == null)
+                return Array.Empty<Appointment>();
+
+            var roles = await _userManager.GetRolesAsync(identityUser);
+            bool canViewAll = roles.Any(r => r == "Receptionist" || r == "Manager" || r == "Admin");
+
+            if (!canViewAll)
+                return Array.Empty<Appointment>();
+
+            var startOfDay = date.Date;
+            var endOfDay = date.Date.AddDays(1);
+
+            return await _dbContext.Appointments
+                .Include(a => a.Customer)
+                .Include(a => a.Therapist)
+                .Where(a => a.StartTime >= startOfDay && a.StartTime < endOfDay)
+                .OrderBy(a => a.StartTime)
+                .ToListAsync();
+        }
+
+        // --------------------------
+        // CANCEL APPOINTMENT
+        // --------------------------
         public async Task<bool> CancelAppointmentAsync(int appointmentId, ClaimsPrincipal user)
         {
             var identityUser = await _userManager.GetUserAsync(user);
@@ -132,22 +159,14 @@ namespace spa_web_app.Services
 
             var roles = await _userManager.GetRolesAsync(identityUser);
             bool isStaff = roles.Any(r =>
-                r == "Therapist" ||
-                r == "Receptionist" ||
-                r == "Manager" ||
-                r == "Admin");
+                r == "Therapist" || r == "Receptionist" || r == "Manager" || r == "Admin");
 
-            var appointment = await _dbContext.Appointments
-                .FirstOrDefaultAsync(a => a.Id == appointmentId);
-
+            var appointment = await _dbContext.Appointments.FirstOrDefaultAsync(a => a.Id == appointmentId);
             if (appointment == null)
                 return false;
 
             if (!isStaff && appointment.CustomerId != identityUser.Id)
-            {
-                // Customer trying to cancel someone else's
                 return false;
-            }
 
             if (appointment.Status == "Cancelled")
                 return true;
@@ -157,9 +176,10 @@ namespace spa_web_app.Services
             return true;
         }
 
-        public async Task<IReadOnlyList<IdentityUser>> GetAvailableTherapistsAsync(
-            DateTime startTime,
-            DateTime endTime)
+        // --------------------------
+        // AVAILABLE THERAPISTS
+        // --------------------------
+        public async Task<IReadOnlyList<IdentityUser>> GetAvailableTherapistsAsync(DateTime startTime, DateTime endTime)
         {
             var busyTherapistIds = await _dbContext.Appointments
                 .Where(a =>
