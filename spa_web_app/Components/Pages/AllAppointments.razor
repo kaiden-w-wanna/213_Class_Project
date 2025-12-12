@@ -1,5 +1,91 @@
-﻿<h3>AllAppointments</h3>
+﻿@page "/appointments/all"
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Receptionist,Manager,Admin")]
+
+@using System.Security.Claims
+@using Microsoft.AspNetCore.Identity
+@using spa_web_app.Models
+@using spa_web_app.Services
+
+@inject IAppointmentService AppointmentService
+@inject AuthenticationStateProvider AuthStateProvider
+
+<PageTitle>All Appointments</PageTitle>
+
+<h3>All Appointments</h3>
+
+<div class="mb-3">
+    <label class="form-label">Select Date:</label>
+    <InputDate class="form-control" @bind-Value="_selectedDate" @onchange="LoadAppointments" />
+</div>
+
+@if (_isLoading)
+{
+    <p>Loading appointments...</p>
+}
+else if (_appointments == null || !_appointments.Any())
+{
+    <p>No appointments found for this date.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Service</th>
+                <th>Start Time</th>
+                <th>End Time</th>
+                <th>Customer</th>
+                <th>Therapist</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var a in _appointments)
+            {
+                <tr>
+                    <td>@a.ServiceName</td>
+                    <td>@a.StartTime.ToLocalTime()</td>
+                    <td>@a.EndTime?.ToLocalTime()</td>
+                    <td>@a.Customer?.UserName</td>
+                    <td>@a.Therapist?.UserName</td>
+                    <td>@a.Status</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
 
 @code {
+    private DateTime _selectedDate = DateTime.Today;
+    private List<Appointment>? _appointments;
+    private bool _isLoading = true;
 
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAppointments();
+    }
+
+    private async Task LoadAppointments()
+    {
+        _isLoading = true;
+
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        try
+        {
+            _appointments = (await AppointmentService.GetAllAppointmentsForDateAsync(_selectedDate, user))
+                            .OrderBy(a => a.StartTime)
+                            .ToList();
+        }
+        catch
+        {
+            _appointments = new List<Appointment>();
+        }
+        finally
+        {
+            _isLoading = false;
+            StateHasChanged();
+        }
+    }
 }
