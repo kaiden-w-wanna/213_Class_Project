@@ -70,6 +70,7 @@ else
             <InputSelect class="form-control" @bind-Value="_input.TherapistId"
                          disabled="@(!_availableTherapists.Any())">
                 <option value="">-- Select Therapist --</option>
+
                 @foreach (var t in _availableTherapists)
                 {
                     <option value="@t.Id">@t.UserName</option>
