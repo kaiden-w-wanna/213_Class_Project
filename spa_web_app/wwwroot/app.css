@@ -1,19 +1,134 @@
+/* =========================
+   Global Styles & Variables
+   ========================= */
+:root {
+    --spa-primary: #2ec4b6;
+    --spa-secondary: #48cae4;
+    --spa-accent: #90dbf4;
+    --spa-dark: #1b4965;
+    --spa-light-bg: #f1fbfd;
+}
+
 html, body {
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    background: linear-gradient(180deg, #f1fbfd 0%, #ffffff 60%);
 }
 
 a, .btn-link {
-    color: #006bb7;
+    color: var(--spa-dark);
 }
 
+
+/* =========================
+   Buttons
+   ========================= */
 .btn-primary {
-    color: #fff;
-    background-color: #1b6ec2;
-    border-color: #1861ac;
+    background: linear-gradient(135deg, var(--spa-primary), var(--spa-secondary));
+    border: none;
+    border-radius: 999px;
+    padding: 0.6rem 1.8rem;
+    font-weight: 500;
+    transition: all 0.2s ease-in-out;
 }
 
-.btn:focus, .btn:active:focus, .btn-link.nav-link:focus, .form-control:focus, .form-check-input:focus {
-  box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
+    .btn-primary:hover {
+        filter: brightness(1.05);
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.15);
+    }
+
+.btn-outline-light {
+    border-radius: 999px;
+}
+
+/* =========================
+   Cards / Panels
+   ========================= */
+.card {
+    border: none;
+    border-radius: 20px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+}
+
+/* =========================
+   Hero Section
+   ========================= */
+@keyframes floatIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.spa-hero {
+    background: radial-gradient(circle at top, var(--spa-secondary), var(--spa-primary));
+    color: white;
+    padding: 7rem 1rem 6rem;
+    text-align: center;
+}
+
+.spa-hero-content {
+    max-width: 750px;
+    margin: auto;
+    animation: floatIn 0.8s ease-out;
+}
+
+.spa-hero h1 {
+    font-size: 3.2rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.spa-hero p {
+    font-size: 1.25rem;
+    opacity: 0.95;
+    margin-bottom: 2.5rem;
+}
+
+.hero-buttons {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+}
+
+/* =========================
+   Wave Divider
+   ========================= */
+.spa-wave {
+    height: 80px;
+    background: url("data:image/svg+xml,%3Csvg viewBox='0 0 1440 90' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath fill='%23f1fbfd' d='M0,32L60,37.3C120,43,240,53,360,53.3C480,53,600,43,720,48C840,53,960,75,1080,74.7C1200,75,1320,53,1380,42.7L1440,32L1440,0L0,0Z'%3E%3C/path%3E%3C/svg%3E") no-repeat center;
+    background-size: cover;
+}
+
+/* =========================
+   Features Section
+   ========================= */
+.spa-features {
+    padding: 4rem 1rem 6rem;
+}
+
+    .spa-features h5 {
+        color: var(--spa-primary);
+        font-weight: 600;
+    }
+
+    .spa-features p {
+        color: #555;
+        font-size: 0.95rem;
+    }
+
+/* =========================
+   Blazor / Validation Overrides
+   ========================= */
+.btn:focus, .btn:active:focus, .btn-link.nav-link:focus,
+.form-control:focus, .form-check-input:focus {
+    box-shadow: 0 0 0 0.1rem white, 0 0 0 0.25rem #258cfb;
 }
 
 .content {
@@ -43,18 +158,81 @@ h1:focus {
 }
 
     .blazor-error-boundary::after {
-        content: "An error has occurred."
+        content: "An error has occurred.";
     }
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
 }
 
-.form-floating > .form-control-plaintext::placeholder, .form-floating > .form-control::placeholder {
+.form-floating > .form-control-plaintext::placeholder,
+.form-floating > .form-control::placeholder {
     color: var(--bs-secondary-color);
     text-align: end;
 }
 
-.form-floating > .form-control-plaintext:focus::placeholder, .form-floating > .form-control:focus::placeholder {
+.form-floating > .form-control-plaintext:focus::placeholder,
+.form-floating > .form-control:focus::placeholder {
     text-align: start;
 }
+
+/* =========================
+   Navbar
+   ========================= */
+.spa-navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 2rem;
+    background: linear-gradient(90deg, var(--spa-primary), var(--spa-secondary));
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+    .spa-navbar .navbar-brand {
+        font-weight: 600;
+        font-size: 1.5rem;
+        color: white;
+        text-decoration: none;
+    }
+
+    .spa-navbar .nav-links {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .spa-navbar .nav-link {
+        color: white !important;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        text-decoration: none;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .spa-navbar .nav-link:hover,
+        .spa-navbar .nav-link.active {
+            background-color: rgba(255, 255, 255, 0.15);
+            text-decoration: none;
+        }
+
+    .spa-navbar .logout-form button {
+        background: none;
+        border: none;
+        color: white;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 0.3rem;
+        padding: 0.4rem 0.8rem;
+        border-radius: 20px;
+        transition: all 0.2s ease-in-out;
+    }
+
+        .spa-navbar .logout-form button:hover {
+            background-color: rgba(255, 255, 255, 0.15);
+        }

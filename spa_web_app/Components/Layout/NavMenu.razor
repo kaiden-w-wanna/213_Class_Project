@@ -1,61 +1,65 @@
 ﻿@implements IDisposable
 @inject NavigationManager NavigationManager
-<div class="top-row ps-3 navbar navbar-dark">
+
+<nav class="spa-navbar">
     <div class="container-fluid">
+        <!-- Brand -->
         <a class="navbar-brand" href="">SpaWebApp</a>
-    </div>
-</div>
 
-<input type="checkbox" title="Navigation menu" class="navbar-toggler" />
-
-<div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
-    <nav class="nav flex-column">
-        <div class="nav-item px-3">
+        <!-- Navigation links -->
+        <div class="nav-links">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
-                <span class="bi bi-house-door-fill-nav-menu" aria-hidden="true"></span> Home
+                <span class="bi bi-house-door-fill"></span> Home
             </NavLink>
-        </div>
 
-        <AuthorizeView>
-            <Authorized>
-                <div class="nav-item px-3">
+            <AuthorizeView>
+                <Authorized Context="authContext">
                     <NavLink class="nav-link" href="Account/Manage">
-                        <span class="bi bi-person-fill-nav-menu" aria-hidden="true"></span> @context.User.Identity?.Name
+                        <span class="bi bi-person-fill"></span> @authContext.User.Identity?.Name
                     </NavLink>
-                </div>
-                <div class="nav-item px-3">
+
                     <NavLink class="nav-link" href="/appointments/book" Match="NavLinkMatch.All">
-                        <span class="bi bi-calendar-check-nav-menu" aria-hidden="true"></span> Book Appointment
+                        <span class="bi bi-calendar-check"></span> Book Appointment
                     </NavLink>
-                </div>
-                <div class="nav-item px-3">
-                    <form action="Account/Logout" method="post">
+
+                    <NavLink class="nav-link" href="/appointments" Match="NavLinkMatch.All">
+                        <span class="bi bi-calendar-event"></span> My Appointments
+                    </NavLink>
+
+                    @if (authContext.User.IsInRole("Receptionist")
+                                        || authContext.User.IsInRole("Manager")
+                                        || authContext.User.IsInRole("Admin"))
+                    {
+                        <NavLink class="nav-link" href="/appointments/all" Match="NavLinkMatch.All">
+                            <span class="bi bi-calendar3"></span> All Appointments
+                        </NavLink>
+                    }
+
+                    <form action="Account/Logout" method="post" class="nav-link logout-form">
                         <AntiforgeryToken />
                         <input type="hidden" name="ReturnUrl" value="@currentUrl" />
-                        <button type="submit" class="nav-link">
-                            <span class="bi bi-arrow-bar-left-nav-menu" aria-hidden="true"></span> Logout
+                        <button type="submit">
+                            <span class="bi bi-arrow-bar-left"></span> Logout
                         </button>
                     </form>
-                </div>
-            </Authorized>
-            <NotAuthorized>
-                <div class="nav-item px-3">
+                </Authorized>
+
+                <NotAuthorized>
                     <NavLink class="nav-link" href="Account/Register">
-                        <span class="bi bi-person-nav-menu" aria-hidden="true"></span> Register
+                        <span class="bi bi-person"></span> Register
                     </NavLink>
-                </div>
-                <div class="nav-item px-3">
                     <NavLink class="nav-link" href="Account/Login">
-                        <span class="bi bi-person-badge-nav-menu" aria-hidden="true"></span> Login
+                        <span class="bi bi-person-badge"></span> Login
                     </NavLink>
-                </div>
-            </NotAuthorized>
-        </AuthorizeView>
-    </nav>
-</div>
+                </NotAuthorized>
+            </AuthorizeView>
+        </div>
+    </div>
+</nav>
 
 @code {
     private string? currentUrl;
+
     protected override void OnInitialized()
     {
         currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
@@ -72,5 +76,4 @@
     {
         NavigationManager.LocationChanged -= OnLocationChanged;
     }
-
 }
