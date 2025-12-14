@@ -180,13 +180,18 @@ h1:focus {
    Navbar
    ========================= */
 .spa-navbar {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.8rem 2rem;
+    width: 100vw; /* full viewport width */
+    position: fixed; /* stick it to the top */
+    top: 0;
+    left: 0;
+    z-index: 1000;
     background: linear-gradient(90deg, var(--spa-primary), var(--spa-secondary));
+    opacity: 1; /* solid background */
+    padding: 0.8rem 2rem;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
+
+
 
     .spa-navbar .navbar-brand {
         font-weight: 600;
