@@ -1,43 +1,57 @@
 ﻿@page "/"
 
-@using Microsoft.AspNetCore.Identity
-@using Microsoft.AspNetCore.Components.Authorization
-@inject UserManager<IdentityUser> UserManager
-@inject AuthenticationStateProvider AuthStateProvider
+<PageTitle>Standard Spa</PageTitle>
 
-<PageTitle>Home</PageTitle>
+<div class="spa-hero">
+    <div class="spa-hero-content">
+        <h1>Relax. Refresh. Rejuvenate.</h1>
+        <p>
+            A modern spa experience designed around your wellness.
+            Book appointments, manage your visits, and unwind effortlessly.
+        </p>
 
-<h1>Welcome to Standard Spa!</h1>
+        <AuthorizeView>
+            <Authorized>
+                <a class="btn btn-primary btn-lg" href="/appointments">
+                    View My Appointments
+                </a>
+            </Authorized>
 
-<p>
-    Enjoy our spa services and manage your appointments online.<br />
-    Already have an account? <a href="/Account/Login">Log in here</a>.<br />
-    New here? <a href="/Account/Register">Register as a customer</a> or
-    <a href="/Account/EmployeeRegister">register as an employee</a>.
-</p>
+            <NotAuthorized>
+                <div class="hero-buttons">
+                    <a class="btn btn-primary btn-lg me-3" href="/Account/Register">
+                        Register to Book
+                    </a>
+                    <a class="btn btn-outline-light btn-lg" href="/Account/Login">
+                        Already have an account?
+                    </a>
+                </div>
+            </NotAuthorized>
+        </AuthorizeView>
+    </div>
+</div>
 
-<p>@Message</p>
+<div class="spa-wave"></div>
 
-@code {
-    private string Message = "";
-
-    protected override async Task OnInitializedAsync()
-    {
-        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
-        var user = authState.User;
-
-        if (user.Identity != null && user.Identity.IsAuthenticated)
-        {
-            var identityUser = await UserManager.GetUserAsync(user);
-            if (identityUser != null)
-            {
-                var roles = await UserManager.GetRolesAsync(identityUser);
-                Message = $"Logged in as {identityUser.UserName}. Roles: {string.Join(", ", roles)}";
-            }
-        }
-        else
-        {
-            Message = "Not logged in.";
-        }
-    }
-}
+<div class="container spa-features">
+    <div class="row text-center">
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>🌿 Personalized Care</h5>
+                <p>Tailored spa services to help you feel your best.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>🗓 Easy Booking</h5>
+                <p>Book and manage appointments online anytime.</p>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card p-4">
+                <h5>💆 Expert Therapists</h5>
+                <p>Licensed professionals delivering premium care.</p>
+            </div>
+        </div>
+    </div>
+</div>
