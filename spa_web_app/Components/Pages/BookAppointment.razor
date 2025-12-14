@@ -19,79 +19,103 @@
 
 <PageTitle>Book Appointment</PageTitle>
 
-<h3>Book Appointment</h3>
-
-@if (_isLoading)
-{
-    <p>Loading...</p>
-}
-else if (!_isAuthenticated)
-{
-    <p>You must be logged in to book an appointment.</p>
-}
-else
-{
-    @* 2. Removed FormName (not needed for InteractiveServer) *@
-    <EditForm Model="_input" OnValidSubmit="HandleValidSubmit">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
-
-        <div class="mb-3">
-            <label class="form-label">Service</label>
-            <InputSelect class="form-control" @bind-Value="_input.ServiceName" @after="LoadAvailableTherapists">
-                @foreach (var option in _serviceOptions)
-                {
-                    <option value="@option.Name">@option.Name</option>
-                }
-            </InputSelect>
+<div class="container py-5">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="display-6 mb-3">Book an Appointment</h1>
+            <p class="lead">
+                Choose a service, pick a date and time, and select an available therapist.
+                You can manage your upcoming appointments below.
+            </p>
         </div>
+    </div>
 
-        <div class="mb-3">
-            <label class="form-label">Date</label>
-            <InputDate class="form-control" @bind-Value="_input.Date"
-                       @after="LoadAvailableTherapists" />
+    @if (_isLoading)
+    {
+        <div class="row">
+            <div class="col-12">
+                <p>Loading...</p>
+            </div>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">Time</label>
-            @* 3. Fixed TimeSpan binding using Convert.ToString *@
-            <InputSelect class="form-control" @bind-Value="_input.Time"
-                         @after="LoadAvailableTherapists">
-                <option value="">-- Select Time --</option>
-                @foreach (var t in _timeSlots)
-                {
-                    <option value="@Convert.ToString(t)">@t.ToString(@"hh\:mm")</option>
-                }
-            </InputSelect>
+    }
+    else if (!_isAuthenticated)
+    {
+        <div class="row">
+            <div class="col-12">
+                <div class="alert alert-warning">You must be logged in to book an appointment.</div>
+            </div>
         </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            <!-- Form column -->
+            <div class="col-lg-6">
+                <section class="p-4 bg-white rounded shadow-sm">
+                    <h4 class="mb-3">New booking</h4>
 
-        <div class="mb-3">
-            <label class="form-label">Therapist</label>
-            <InputSelect class="form-control" @bind-Value="_input.TherapistId"
-                         disabled="@(!_availableTherapists.Any())">
-                <option value="">-- Select Therapist --</option>
+                    <EditForm Model="_input" OnValidSubmit="HandleValidSubmit">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
 
-                @foreach (var t in _availableTherapists)
-                {
-                    <option value="@t.Id">@t.UserName</option>
-                }
-            </InputSelect>
-            @if (!_availableTherapists.Any())
-            {
-                <small class="text-muted">No therapists available for the selected time.</small>
-            }
+                        @if (!string.IsNullOrEmpty(_statusMessage))
+                        {
+                            <div class="alert alert-info">@_statusMessage</div>
+                        }
+
+                        <div class="mb-3">
+                            <label class="form-label">Service</label>
+                            <InputSelect class="form-select" @bind-Value="_input.ServiceName" @after="LoadAvailableTherapists">
+                                @foreach (var option in _serviceOptions)
+                                {
+                                    <option value="@option.Name">@option.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Date</label>
+                            <InputDate class="form-control" @bind-Value="_input.Date" @after="LoadAvailableTherapists" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Time</label>
+                            <InputSelect class="form-select" @bind-Value="_input.Time" @after="LoadAvailableTherapists">
+                                <option value="">-- Select Time --</option>
+                                @foreach (var t in _timeSlots)
+                                {
+                                    <option value="@Convert.ToString(t)">@t.ToString(@"hh\:mm")</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">Therapist</label>
+                            <InputSelect class="form-select" @bind-Value="_input.TherapistId" disabled="@(!_availableTherapists.Any())">
+                                <option value="">-- Select Therapist --</option>
+                                @foreach (var t in _availableTherapists)
+                                {
+                                    <option value="@t.Id">@t.UserName</option>
+                                }
+                            </InputSelect>
+
+                            @if (!_availableTherapists.Any())
+                            {
+                                <small class="text-muted">No therapists available for the selected time.</small>
+                            }
+                        </div>
+
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
+                                @(_isSubmitting ? "Booking..." : "Book Appointment")
+                            </button>
+                        </div>
+                    </EditForm>
+                </section>
+            </div>
         </div>
-
-        <button type="submit" class="btn btn-primary" disabled="@_isSubmitting">
-            @(_isSubmitting ? "Booking..." : "Book Appointment")
-        </button>
-
-        @if (!string.IsNullOrEmpty(_statusMessage))
-        {
-            <p class="mt-2">@_statusMessage</p>
-        }
-    </EditForm>
-}
+    }
+</div>
 
 @code {
     private bool _isLoading = true;
