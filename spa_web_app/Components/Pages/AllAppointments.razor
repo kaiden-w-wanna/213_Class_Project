@@ -1,4 +1,6 @@
 ﻿@page "/appointments/all"
+@* 1. FIX: Add Render Mode so buttons/inputs work *@
+@rendermode InteractiveServer
 @attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Receptionist,Manager,Admin")]
 
 @using System.Security.Claims
@@ -15,44 +17,52 @@
 
 <div class="mb-3">
     <label class="form-label">Select Date:</label>
-    <InputDate class="form-control" @bind-Value="_selectedDate" @onchange="LoadAppointments" />
+    @* 2. FIX: Use @bind-Value:after to trigger load on change *@
+    <InputDate class="form-control"
+               @bind-Value="_selectedDate"
+               @bind-Value:after="LoadAppointments" />
 </div>
 
 @if (_isLoading)
 {
-    <p>Loading appointments...</p>
+    <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
 }
 else if (_appointments == null || !_appointments.Any())
 {
-    <p>No appointments found for this date.</p>
+    <div class="alert alert-info">No appointments found for @_selectedDate.ToShortDateString().</div>
 }
 else
 {
-    <table class="table table-striped">
-        <thead>
-            <tr>
-                <th>Service</th>
-                <th>Start Time</th>
-                <th>End Time</th>
-                <th>Customer</th>
-                <th>Therapist</th>
-                <th>Status</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var a in _appointments)
-            {
+    <div class="table-responsive">
+        <table class="table table-striped table-hover">
+            <thead class="table-dark">
                 <tr>
-                    <td>@a.ServiceName</td>
-                    <td>@a.StartTime.ToLocalTime()</td>
-                    <td>@a.EndTime?.ToLocalTime()</td>
-                    <td>@a.Customer?.UserName</td>
-                    <td>@a.Therapist?.UserName</td>
-                    <td>@a.Status</td>
+                    <th>Service</th>
+                    <th>Time</th>
+                    <th>Customer</th>
+                    <th>Therapist</th>
+                    <th>Status</th>
                 </tr>
-            }
-        </tbody>
-    </table>
+            </thead>
+            <tbody>
+                @foreach (var a in _appointments)
+                {
+                    <tr>
+                        <td>@a.ServiceName</td>
+                        @* Added formatting for readability *@
+                        <td>@($"{a.StartTime:h:mm tt}") - @($"{a.EndTime:h:mm tt}")</td>
+                        <td>@(a.Customer?.UserName ?? "Unknown")</td>
+                        <td>@(a.Therapist?.UserName ?? "Unassigned")</td>
+                        <td>
+                            <span class="badge @GetStatusBadgeClass(a.Status)">@a.Status</span>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {
@@ -62,18 +72,23 @@ else
 
     protected override async Task OnInitializedAsync()
     {
+        // Initial load
         await LoadAppointments();
     }
 
     private async Task LoadAppointments()
     {
         _isLoading = true;
+        // Force UI update to show spinner immediately
+        StateHasChanged();
 
         var authState = await AuthStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
 
         try
         {
+            // Note: Ensure this service method returns ALL appointments for the date,
+            // and doesn't filter by 'user.Id' (since 'user' here is the Admin).
             _appointments = (await AppointmentService.GetAllAppointmentsForDateAsync(_selectedDate, user))
                             .OrderBy(a => a.StartTime)
                             .ToList();
@@ -88,4 +103,12 @@ else
             StateHasChanged();
         }
     }
+
+    private string GetStatusBadgeClass(string status) => status switch
+    {
+        "Confirmed" => "bg-success",
+        "Cancelled" => "bg-danger",
+        "Completed" => "bg-secondary",
+        _ => "bg-primary"
+    };
 }
