@@ -3,10 +3,8 @@
 
 <nav class="spa-navbar">
     <div class="container-fluid">
-        <!-- Brand -->
         <a class="navbar-brand" href="">Super Spa</a>
 
-        <!-- Navigation links -->
         <div class="nav-links">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
                 <span class="bi bi-house-door-fill"></span> Home
@@ -26,12 +24,21 @@
                         <span class="bi bi-calendar-event"></span> My Appointments
                     </NavLink>
 
+                    @* Links for Staff Roles (Receptionist, Manager, Admin) *@
                     @if (authContext.User.IsInRole("Receptionist")
                                         || authContext.User.IsInRole("Manager")
                                         || authContext.User.IsInRole("Admin"))
                     {
                         <NavLink class="nav-link" href="/appointments/all" Match="NavLinkMatch.All">
                             <span class="bi bi-calendar3"></span> All Appointments
+                        </NavLink>
+                    }
+
+                    @* NEW LINK FOR EMPLOYEE MANAGEMENT (Manager, Admin only) *@
+                    @if (authContext.User.IsInRole("Manager") || authContext.User.IsInRole("Admin"))
+                    {
+                        <NavLink class="nav-link" href="/admin/employees" Match="NavLinkMatch.All">
+                            <span class="bi bi-person-workspace"></span> View Employees
                         </NavLink>
                     }
 
