@@ -244,3 +244,33 @@ h1:focus {
 body {
     padding-top: 80px; /* match navbar height */
 }
+
+.card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 0.75rem 1.5rem rgba(0,0,0,0.08);
+    }
+
+.service-card {
+    background: linear-gradient( 135deg, var(--spa-primary), var(--spa-secondary) );
+    color: white;
+}
+
+
+    .service-card img {
+        height: 180px;
+        object-fit: cover;
+    }
+
+    .service-card p {
+        font-size: 0.95rem;
+        line-height: 1.4;
+    }
+
+    .service-card:hover {
+        transform: translateY(-4px);
+        transition: transform 0.2s ease;
+    }

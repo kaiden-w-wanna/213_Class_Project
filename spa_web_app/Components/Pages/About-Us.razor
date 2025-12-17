@@ -1,69 +1,95 @@
 ﻿@page "/about-us"
-@using Microsoft.AspNetCore.Components
 
-<PageTitle>About Us - Super Spa</PageTitle>
+<PageTitle>About Us | Super Spa</PageTitle>
 
-<div class="container py-5">
-    <div class="text-center mb-5">
-        <h1 class="display-4 fw-bold">About Super Spa</h1>
-        <p class="lead text-muted">
-            Elevating wellness and relaxation to a whole new level.
+<!-- HERO -->
+<div class="spa-hero">
+    <div class="spa-hero-content">
+        <h1>About Super Spa</h1>
+        <p>
+            Relax. Restore. Rejuvenate.
         </p>
     </div>
+</div>
 
-    <div class="row align-items-center mb-5">
-        <div class="col-md-6">
-            <h2 class="fw-bold">Our Mission</h2>
-            <p class="text-muted">
-                At Super Spa, our mission is to provide a sanctuary where you can unwind, rejuvenate,
-                and experience the ultimate in wellness and self-care. We combine expert therapists,
-                premium treatments, and a serene environment to make every visit unforgettable.
+<div class="spa-wave"></div>
+
+<!-- ABOUT -->
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8 text-center">
+            <p class="fs-5 text-muted">
+                At <strong>Super Spa</strong>, we focus on high-quality treatments designed
+                to help you relax, recharge, and feel your best in a calm, welcoming space.
             </p>
         </div>
-        <div class="col-md-6">
-            <img src="images/spa-relax.jpg" alt="Spa Relaxation" class="img-fluid rounded shadow" />
-        </div>
+    </div>
+</div>
+
+<!-- SERVICES -->
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <h2 class="fw-bold">Our Services</h2>
+        <p class="text-muted">Carefully crafted treatments for total relaxation</p>
     </div>
 
-    <div class="row align-items-center mb-5 flex-md-row-reverse">
-        <div class="col-md-6">
-            <h2 class="fw-bold">Our Services</h2>
-            <ul class="list-unstyled text-muted">
-                <li>💆 Professional Massages & Body Treatments</li>
-                <li>💅 Manicure, Pedicure & Beauty Care</li>
-                <li>🧘 Yoga & Meditation Sessions</li>
-                <li>🌿 Holistic Wellness Programs</li>
-            </ul>
-        </div>
-        <div class="col-md-6">
-            <img src="images/spa-services.jpg" alt="Spa Services" class="img-fluid rounded shadow" />
-        </div>
-    </div>
+    <div class="row g-4">
 
-    <div class="text-center mt-5">
-        <h2 class="fw-bold">Meet Our Team</h2>
-        <p class="text-muted mb-4">
-            Our dedicated professionals are here to ensure your wellness journey is exceptional.
-        </p>
-        <div class="row justify-content-center">
-            <div class="col-sm-6 col-md-3 mb-4">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <img src="images/team-therapist.jpg" class="card-img-top rounded-top" alt="Therapist">
-                    <div class="card-body text-center">
-                        <h5 class="card-title mb-0">Jane Doe</h5>
-                        <small class="text-muted">Lead Therapist</small>
-                    </div>
-                </div>
-            </div>
-            <div class="col-sm-6 col-md-3 mb-4">
-                <div class="card border-0 shadow-sm rounded-4">
-                    <img src="images/team-receptionist.jpg" class="card-img-top rounded-top" alt="Receptionist">
-                    <div class="card-body text-center">
-                        <h5 class="card-title mb-0">John Smith</h5>
-                        <small class="text-muted">Front Desk Manager</small>
-                    </div>
+        <!-- Swedish -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 service-card text-white rounded-4">
+                <img src="images/massage.jpg" class="card-img-top" alt="Swedish Massage" />
+                <div class="card-body text-center">
+                    <h5 class="fw-semibold mb-2">Swedish Massage</h5>
+                    <p>
+                        A gentle, full-body massage designed to reduce stress,
+                        improve circulation, and promote overall relaxation.
+                    </p>
                 </div>
             </div>
         </div>
+
+        <!-- Deep Tissue -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 service-card text-white rounded-4">
+                <img src="images/deeptissue.jpg" class="card-img-top" alt="Deep Tissue Massage" />
+                <div class="card-body text-center">
+                    <h5 class="fw-semibold mb-2">Deep Tissue Massage</h5>
+                    <p>
+                        Focused pressure therapy that targets deeper muscle layers
+                        to relieve chronic pain and tension.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Facial -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 service-card text-white rounded-4">
+                <img src="images/facial.jpeg" class="card-img-top" alt="Facial Treatment" />
+                <div class="card-body text-center">
+                    <h5 class="fw-semibold mb-2">Facial Treatments</h5>
+                    <p>
+                        Customized facial treatments that cleanse, hydrate,
+                        and rejuvenate your skin for a healthy glow.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body Scrub -->
+        <div class="col-md-6 col-lg-3">
+            <div class="card h-100 service-card text-white rounded-4">
+                <img src="images/bodyscrub.jpg" class="card-img-top" alt="Body Scrub" />
+                <div class="card-body text-center">
+                    <h5 class="fw-semibold mb-2">Body Scrub</h5>
+                    <p>
+                        An exfoliating treatment that removes impurities
+                        and leaves your skin smooth and refreshed.
+                    </p>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
