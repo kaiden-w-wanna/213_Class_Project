@@ -51,6 +51,10 @@
         Are you an employee?
         <a href="/Account/EmployeeRegister">Register here</a>
     </p>
+    <p>
+        Already have an account?
+        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Login", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Log in</a>
+    </p>
     @* <div class="col-md-6 col-md-offset-2">
         <section>
             <h3>Use another service to register.</h3>
