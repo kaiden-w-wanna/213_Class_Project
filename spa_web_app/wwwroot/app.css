@@ -274,3 +274,7 @@ body {
         transform: translateY(-4px);
         transition: transform 0.2s ease;
     }
+.main-content-fix {
+    /* Pushes all content down past the fixed navigation bar */
+    padding-top: 30px;
+}
