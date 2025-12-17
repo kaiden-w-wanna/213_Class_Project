@@ -1,0 +1,120 @@
+﻿@page "/admin/employees"
+@* Enable interactivity for sorting or future actions *@
+@rendermode InteractiveServer
+@attribute [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin,Manager")]
+
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+
+@inject UserManager<IdentityUser> UserManager
+@inject RoleManager<IdentityRole> RoleManager
+
+<PageTitle>Employee Directory</PageTitle>
+
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Employee Directory</h3>
+        @* Placeholder for a future "Add Employee" button *@
+        <button class="btn btn-primary" disabled>+ Add Employee</button>
+    </div>
+
+    @if (_isLoading)
+    {
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+    }
+    else if (!_employees.Any())
+    {
+        <div class="alert alert-info">No employees found.</div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-striped table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>Username</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Roles</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var emp in _employees)
+                    {
+                        <tr>
+                            <td>
+                                <strong>@emp.User.UserName</strong>
+                            </td>
+                            <td>@emp.User.Email</td>
+                            <td>@(string.IsNullOrEmpty(emp.User.PhoneNumber) ? "N/A" : emp.User.PhoneNumber)</td>
+                            <td>
+                                @foreach (var role in emp.Roles)
+                                {
+                                    <span class="badge bg-info text-dark me-1">@role</span>
+                                }
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-secondary">Edit</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    private bool _isLoading = true;
+    private List<EmployeeViewModel> _employees = new();
+
+    // Define the roles we consider "Employees"
+    private readonly string[] _employeeRoles = { "Therapist", "Receptionist", "Manager", "Admin" };
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadEmployees();
+    }
+
+    private async Task LoadEmployees()
+    {
+        _isLoading = true;
+
+        // Use a Dictionary to ensure unique users (in case a user has multiple roles)
+        var employeeMap = new Dictionary<string, EmployeeViewModel>();
+
+        foreach (var roleName in _employeeRoles)
+        {
+            var usersInRole = await UserManager.GetUsersInRoleAsync(roleName);
+
+            foreach (var user in usersInRole)
+            {
+                if (!employeeMap.ContainsKey(user.Id))
+                {
+                    // Fetch all roles for this user to display them correctly
+                    // (e.g. they might be both a Manager AND a Therapist)
+                    var userRoles = await UserManager.GetRolesAsync(user);
+
+                    employeeMap[user.Id] = new EmployeeViewModel
+                    {
+                        User = user,
+                        Roles = userRoles.ToList()
+                    };
+                }
+            }
+        }
+
+        _employees = employeeMap.Values.OrderBy(e => e.User.UserName).ToList();
+        _isLoading = false;
+    }
+
+    // Helper class to hold User + Role data cleanly
+    public class EmployeeViewModel
+    {
+        public IdentityUser User { get; set; } = default!;
+        public List<string> Roles { get; set; } = new();
+    }
+}
