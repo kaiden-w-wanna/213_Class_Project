@@ -42,6 +42,7 @@
                         <th>Service</th>
                         <th>Date</th>
                         <th>Time</th>
+                        <th>Customer</th> @* Added Customer Column *@
                         <th>Therapist</th>
                         <th>Price</th>
                         <th>Status</th>
@@ -54,13 +55,16 @@
                         <tr>
                             <td>@appt.ServiceName</td>
 
-                            @* 2. FIX: Robust date formatting syntax *@
+                            @* Robust date formatting syntax *@
                             <td>@(appt.StartTime.ToShortDateString())</td>
 
-                            @* 3. FIX: Robust time formatting syntax *@
+                            @* Robust time formatting syntax *@
                             <td>@($"{appt.StartTime:h:mm tt}") - @($"{appt.EndTime:h:mm tt}")</td>
 
-                            @* 4. FIX: Therapist access now works due to service Include() *@
+                            @* Added Customer Name Display *@
+                            <td>@(appt.Customer?.UserName ?? "Unknown")</td>
+
+                            @* Therapist access *@
                             <td>@(appt.Therapist?.UserName ?? "Unassigned")</td>
 
                             <td>@(appt.Price.HasValue? appt.Price.Value.ToString("C") : "N/A")</td>
@@ -123,7 +127,7 @@
         {
             try
             {
-                // 5. CRITICAL FIX: Use the method that accepts ClaimsPrincipal user,
+                // CRITICAL FIX: Use the method that accepts ClaimsPrincipal user,
                 // which correctly handles roles/filtering in your service.
                 _appointments = await AppointmentService.GetAppointmentsForUserAsync(user);
             }
