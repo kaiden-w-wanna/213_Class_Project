@@ -49,7 +49,6 @@
     else
     {
         <div class="row g-4">
-            <!-- Form column -->
             <div class="col-lg-6">
                 <section class="p-4 bg-white rounded shadow-sm">
                     <h4 class="mb-3">New booking</h4>
@@ -149,8 +148,10 @@
     {
         _serviceDurations = _serviceOptions.ToDictionary(s => s.Name, s => s.DefaultDuration);
 
+        // Generates time slots from 9:00 AM to 5:00 PM (9*60 to 17*60) in 15-minute increments
         _timeSlots = Enumerable.Range(0, (8 * 4) + 1)
                                .Select(i => TimeSpan.FromMinutes(9 * 60 + i * 15))
+                               .Where(t => t.Hours < 17) // Stop before 5 PM
                                .ToList();
     }
 
@@ -174,26 +175,36 @@
             _currentUserId = identityUser?.Id;
         }
 
+        // Ensure the initial time is always loaded
         await LoadAvailableTherapists();
         _isLoading = false;
     }
 
-    // 4. Simplified logic using @after instead of @onchange
     private async Task LoadAvailableTherapists()
     {
-        // Reset therapist selection if options change
-        // _input.TherapistId = null; // Optional: Uncomment if you want to force re-selection
-
         _availableTherapists.Clear();
 
         if (_input.Date == null || _input.Time == null) return;
 
-        var selectedDateTime = _input.Date.Value.Date + _input.Time.Value;
-        var duration = _serviceDurations.TryGetValue(_input.ServiceName, out var d) ? d : TimeSpan.FromMinutes(60);
-        var endTime = selectedDateTime.Add(duration);
+        // 1. Calculate the local start time
+        var selectedLocalDateTime = _input.Date.Value.Date + _input.Time.Value;
 
-        // Ensure we are fetching for the correct user context
-        _availableTherapists = (await AppointmentService.GetAvailableTherapistsAsync(selectedDateTime, endTime)).ToList();
+        // 2. *** FIX: Convert local time to UTC time for the service layer ***
+        var startUtc = selectedLocalDateTime.ToUniversalTime();
+
+        var duration = _serviceDurations.TryGetValue(_input.ServiceName, out var d) ? d : TimeSpan.FromMinutes(60);
+
+        // 3. Calculate the UTC end time
+        var endUtc = startUtc.Add(duration);
+
+        // Use the UTC times for the database query
+        _availableTherapists = (await AppointmentService.GetAvailableTherapistsAsync(startUtc, endUtc)).ToList();
+
+        // If a therapist was selected and is no longer available, clear the selection
+        if (!string.IsNullOrEmpty(_input.TherapistId) && !_availableTherapists.Any(t => t.Id == _input.TherapistId))
+        {
+            _input.TherapistId = null;
+        }
 
         // Refresh UI
         StateHasChanged();
@@ -212,23 +223,38 @@
 
         try
         {
-            var startTime = _input.Date.Value.Date + _input.Time.Value;
+            // 1. Calculate local start time
+            var startLocal = _input.Date.Value.Date + _input.Time.Value;
+            // 2. *** FIX: Convert to UTC before saving ***
+            var startTimeUtc = startLocal.ToUniversalTime();
+
             var duration = _serviceDurations.TryGetValue(_input.ServiceName, out var d) ? d : TimeSpan.FromMinutes(60);
-            var endTime = startTime.Add(duration);
+
+            // 3. Calculate UTC end time
+            var endTimeUtc = startTimeUtc.Add(duration);
+
             var price = _servicePrices.TryGetValue(_input.ServiceName, out var p) ? p : 0m;
 
             await AppointmentService.CreateAppointmentAsync(
                 _currentUserId!,
                 _input.ServiceName,
-                startTime,
-                endTime,
+                startTimeUtc, // Use UTC
+                endTimeUtc,    // Use UTC
                 price,
                 _input.TherapistId);
 
-            _statusMessage = "Appointment booked successfully!";
+            _statusMessage = "Appointment booked successfully! You can view it under My Appointments.";
 
-            // Optional: Redirect after booking
-            // NavigationManager.NavigateTo("/appointments");
+            // Clear the form for the next booking
+            _input = new AppointmentInputModel
+            {
+                ServiceName = "Swedish Massage (60 min)",
+                Date = DateTime.Today.AddDays(1),
+                Time = TimeSpan.FromHours(9)
+            };
+
+            // Re-run the therapist load for the cleared form
+            await LoadAvailableTherapists();
         }
         catch (Exception ex)
         {
@@ -242,16 +268,16 @@
 
     public class AppointmentInputModel
     {
-        [Required]
+        [Required(ErrorMessage = "Please select a service.")]
         public string ServiceName { get; set; } = "Swedish Massage (60 min)";
 
-        [Required]
+        [Required(ErrorMessage = "Please select a date.")]
         public DateTime? Date { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Please select a time.")]
         public TimeSpan? Time { get; set; }
 
-        [Required]
+        [Required(ErrorMessage = "Please select an available therapist.")]
         public string? TherapistId { get; set; }
     }
 
